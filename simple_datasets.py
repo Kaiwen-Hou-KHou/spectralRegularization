@@ -1,0 +1,69 @@
+# -*- coding: utf-8 -*-
+"""
+Dataset Loaders
+
+@author: Kaiwen Hou
+kaiwen.hou@mila.quebec
+"""
+
+import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
+
+def load_simple_data(data_path):
+    return torch.from_numpy(np.load(data_path)).long()
+
+# Dataset class
+class SimpleDataset(Dataset):
+    ''' Transform toydata to dataset
+    '''
+    def __init__(self, simple_data):
+        self.data = simple_data  # N x seq_len
+        self.sos_token = 2#simple_data.max() +1  # SOS token
+        self.eos_token = 3#simple_data.max() +2  # EOS token
+
+    def __getitem__(self, i):
+        seq = self.data[i]
+        seq = torch.cat((torch.tensor([self.sos_token]), seq, torch.tensor([self.eos_token])))  # add SOS, EOS token
+        return seq[:-1], seq[1:]  # labels are the input sequence shifted by 1
+    
+    def __len__(self):
+        return self.data.shape[0]
+
+
+def collate(seq_list):
+    '''Transform a list of sequences into a batch
+    Returns data of the format batch_size x seq_len'''
+    inputs = torch.stack([s[0] for s in seq_list], dim=0)
+    targets = torch.stack([s[1] for s in seq_list], dim=0)
+    return inputs, targets 
+
+def get_first_N_training_data(data, N, split=0.7):
+    
+    simple_data = torch.tensor(data[:int(N*split)])
+    val_data = torch.tensor(data[int(N*split):int(N)])
+    VOCAB_SIZE = 4
+
+    train_dataset = SimpleDataset(simple_data)
+    val_dataset = SimpleDataset(val_data)
+
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=len(simple_data), collate_fn = collate)
+    val_loader = DataLoader(val_dataset, shuffle=False, batch_size=len(val_data), collate_fn = collate, drop_last=True)
+    
+    return [train_loader, val_loader, VOCAB_SIZE]
+
+
+def get_random_training_data(data, N, split=0.7):
+    
+    import random
+    simple_data = torch.tensor(random.choices(data,k=int(N*split)))
+    val_data = torch.tensor(random.choices(data,k=int(N*(1-split))))
+    VOCAB_SIZE = 4
+
+    train_dataset = SimpleDataset(simple_data)
+    val_dataset = SimpleDataset(val_data)
+
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=len(simple_data), collate_fn = collate)
+    val_loader = DataLoader(val_dataset, shuffle=False, batch_size=len(val_data), collate_fn = collate, drop_last=True)
+    
+    return [train_loader, val_loader, VOCAB_SIZE]       

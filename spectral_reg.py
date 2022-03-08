@@ -44,7 +44,7 @@ class SpectralRegularization(nn.Module):
                 log_hankel[i, j] = self.log_prob_word(model, word, VOCAB_SIZE) - (max(len(prefix),len(suffix))-1)*np.log(1-stopProb)
         return log_hankel
 
-    def forward(self, model, VOCAB_SIZE, stopProb=0.5, hankelSizeCap=9):
+    def forward(self, model, VOCAB_SIZE, stopProb=0.2, hankelSizeCap=10):
         τ = min(np.random.geometric(stopProb), hankelSizeCap)
         prefixes = self.generate_affixes(L=τ)
         suffixes = self.generate_affixes(L=τ)

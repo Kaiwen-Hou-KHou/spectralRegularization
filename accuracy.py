@@ -7,6 +7,7 @@ kaiwen.hou@mila.quebec
 """
 
 import torch
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 def get_mask(targets):
     mask = []
@@ -18,7 +19,7 @@ def get_mask(targets):
             else:
                 boolean.append(0)
         mask.append(boolean)
-    return torch.tensor(mask)
+    return torch.tensor(mask).to(DEVICE)
 
 def Accuracy(outputs, targets, ignore_markers=False):
     """
@@ -28,6 +29,6 @@ def Accuracy(outputs, targets, ignore_markers=False):
     B, L = targets.size()
     mask = get_mask(targets)
     if not ignore_markers:
-        return 1 - sum(sum(mask * (torch.argmax(outputs, axis=2) != targets)))/(B * L)
+        return 1 - sum(sum(mask * (torch.argmax(outputs, axis=2) != targets).to(DEVICE)))/(B * L)
     else:
-        return 1 - sum(sum(mask * (torch.argmax(outputs[:,:,:-2], axis=2) != targets)))/(B * L)
+        return 1 - sum(sum(mask * (torch.argmax(outputs[:,:,:-2], axis=2) != targets).to(DEVICE)))/(B * L)

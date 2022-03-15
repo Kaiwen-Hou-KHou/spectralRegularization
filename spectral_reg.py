@@ -25,13 +25,13 @@ class SpectralRegularization(nn.Module):
         super(SpectralRegularization, self).__init__()
 
     # @profile
-    def forward(self, model, VOCAB_SIZE, stopProb=0.2, hankelSizeCap=10, russian_roulette_type='L_shape'):
+    def forward(self, model, VOCAB_SIZE, stopProb=0.2, hankelSizeCap=10, russian_roulette_type='L_shape', verbose=-1):
         τ = min(np.random.geometric(stopProb), hankelSizeCap)   
 
         tic()
         logH = self.make_hankel(model, τ, stopProb, VOCAB_SIZE, russian_roulette_type)
-        print(f"running time for Hankel of size {logH.shape} (tau = {τ}, {russian_roulette_type}): {toc()} seconds")
-
+        if verbose > 0:
+            print(f"running time for Hankel of size {logH.shape} (tau = {τ}, {russian_roulette_type}): {toc()} seconds")
 
         return torch.norm(torch.exp(logH - logH.max()), p='nuc') #Hankel Loss...
 

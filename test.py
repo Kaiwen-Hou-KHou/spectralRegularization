@@ -1,0 +1,15 @@
+from char_lang_model import CharLanguageModel
+from spectral_reg import SpectralRegularization
+import torch
+import sys
+
+torch.set_printoptions(linewidth=200)
+model = CharLanguageModel(vocab_size = 4, embed_size = 4, hidden_size=50, nlayers=1, 
+						rnn_type='RNN', nonlinearity='tanh') 
+specreg = SpectralRegularization()
+
+size_cap = int(sys.argv[1])
+H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=size_cap)
+print(H.item())
+H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=size_cap, russian_roulette_type='block_diag')
+print(H.item())

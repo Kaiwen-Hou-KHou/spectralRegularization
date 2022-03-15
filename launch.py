@@ -24,9 +24,9 @@ def parse_option():
     opt = parser.parse_args()
     return opt
 
-def pad_data(dataset, max_len):
+def pad_data(dataset, max_len, VOCAB_SIZE=4):
     split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-    return [l + [3] * (max_len - len(l)) for l in split_str]
+    return [l + [VOCAB_SIZE-1] * (max_len - len(l)) for l in split_str]
 
 def train_epoch(model, VOCAB_SIZE, optimizer, train_loader, lam, stopProb = 0.2):
     model.train()

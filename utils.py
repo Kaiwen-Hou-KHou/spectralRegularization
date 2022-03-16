@@ -186,7 +186,7 @@ def pad_to(tensor, pad_shape, **kwargs):
 
     return jnp.pad(tensor, pad_width, **kwargs)
 
-@jax.custom_transforms
+
 def stable_svd(a):
     """
     Singular Value Decomposition with more stable autodiff rule

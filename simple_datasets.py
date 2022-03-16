@@ -57,8 +57,8 @@ def get_random_training_data(data, N, split=0.7):
     
     import random
     simple_data = torch.tensor(random.choices(data,k=int(N*split)))
-    val_data = torch.tensor(random.choices(data,k=int(N*(1-split))))
-    VOCAB_SIZE = 4
+    val_data = torch.tensor(random.choices(data,k=int(N*(1-split))))   # train and val can be overlapping
+    VOCAB_SIZE = 4  # hardcoded !!!
 
     train_dataset = SimpleDataset(simple_data)
     val_dataset = SimpleDataset(val_data)

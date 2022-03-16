@@ -9,8 +9,9 @@ model = CharLanguageModel(vocab_size = 4, embed_size = 4, hidden_size=50, nlayer
 specreg = SpectralRegularization()
 
 size_cap = int(sys.argv[1])
-H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=size_cap, verbose=1)
-print(H.item())
-H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=size_cap, 
-	russian_roulette_type='block_diag', verbose=1)
-print(H.item())
+# H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=size_cap, verbose=1)
+# print(H.item())
+for i in range(2,size_cap):
+	H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=i, 
+		russian_roulette_type='block_diag', verbose=1)
+	print(H.item())

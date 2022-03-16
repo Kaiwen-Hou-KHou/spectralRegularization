@@ -10,8 +10,6 @@ import jax
 import numpy as np
 import jax.numpy as jnp
 
-from utils import disk_cache
-from train_tools import init_strset
 
 def splitter(rng_key, str_list, data_split):
     """
@@ -43,7 +41,7 @@ def splitter(rng_key, str_list, data_split):
     return datasets
 
 ### TOMITA GRAMMARS ###
-@disk_cache('tomita.data')
+# @disk_cache('tomita.data')
 def tomita_dataset(rng_key, data_split, max_len, tomita_num, min_len=1,
                    add_ends=False, as_strset=False):
     """
@@ -96,7 +94,7 @@ def score_tomita(trial_strs, tomita_num):
 
     return correct_frac
 
-@disk_cache('tomita_size.data')
+# @disk_cache('tomita_size.data')
 def tomita_size(frac_split, min_len, max_len, tomita_num):
     """
     Get the absolute size of a given fractional split of a Tomita grammar
@@ -141,7 +139,7 @@ def tomita_7(word):
 
 ### BRACKETS DATASET ###
 
-@disk_cache('brackets.data')
+# @disk_cache('brackets.data')
 def brackets_dataset(rng_key, data_split, max_len, min_len=1, 
                      add_ends=False, _prob_params=None):
     """
@@ -322,7 +320,7 @@ def _brackets_rand(rng_key, str_len, data_split, _prob_params=None):
 
     return datasets
 
-@disk_cache('brackets_size.data')
+# @disk_cache('brackets_size.data')
 def brackets_size(frac_split, min_len, max_len):
     """
     Get the absolute size of a fractional split of the brackets dataset

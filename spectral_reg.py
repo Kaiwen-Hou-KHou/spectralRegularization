@@ -13,6 +13,7 @@ from torch.nn import functional as F
 import itertools
 
 from tictoc import tic,toc
+import wandb
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -25,9 +26,10 @@ class SpectralRegularization(nn.Module):
         super(SpectralRegularization, self).__init__()
 
     # @profile
-    def forward(self, model, VOCAB_SIZE, stopProb=0.2, hankelSizeCap=10, russian_roulette_type='L_shape', verbose=-1):
+    def forward(self, model, VOCAB_SIZE, stopProb=0.2, hankelSizeCap=10, russian_roulette_type='L_shape', verbose=-1, use_wandb=False):
         τ = min(np.random.geometric(stopProb), hankelSizeCap)   
-
+        if use_wandb:
+            wandb.log({"tau":τ})
         tic()
         logH = self.make_hankel(model, τ, stopProb, VOCAB_SIZE, russian_roulette_type)
         if verbose > 0:
@@ -76,10 +78,11 @@ class SpectralRegularization(nn.Module):
 
     # @profile
     def make_hankel(self, model, τ, stopProb, VOCAB_SIZE, russian_roulette_type='L_shape'):
+        assert(russian_roulette_type in "L_shape block_diag block_diag_no_norm".split())
         model_values = {}
         if russian_roulette_type == 'L_shape':
             max_length = 2*τ 
-        elif russian_roulette_type == 'block_diag':
+        elif 'block_diag' in russian_roulette_type:
             max_length = 2*τ
         else:
             raise(NotImplementedError())
@@ -89,11 +92,13 @@ class SpectralRegularization(nn.Module):
         for l in range(max_length+1):
             if russian_roulette_type == 'L_shape':
                 hankel_tensors.append(self.get_Hankel_tensor(model,l,VOCAB_SIZE))
-            if russian_roulette_type == 'block_diag':
+            if 'block_diag' in russian_roulette_type:
                 if l > τ:
                     hankel_tensors.append(-1 * torch.ones([VOCAB_SIZE-2] * l) * torch.inf)
                 else:
-                    hankel_tensors.append(self.get_Hankel_tensor(model,l,VOCAB_SIZE) - l*np.log(1-stopProb))
+                    hankel_tensors.append(self.get_Hankel_tensor(model,l,VOCAB_SIZE))
+                    if russian_roulette_type == 'block_diag':
+                        hankel_tensors[-1] -= l*np.log(1-stopProb)
 
 
         logH = hankel_tensors[0].reshape([1,1])

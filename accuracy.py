@@ -8,6 +8,7 @@ kaiwen.hou@mila.quebec
 
 import torch
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+#DEVICE = "cpu"
 
 def get_mask(targets):
     mask = []

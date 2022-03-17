@@ -17,6 +17,8 @@ import wandb
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cpu"
+
 words_of_length = lambda length,voc_size : torch.tensor(list(itertools.product(range(voc_size), repeat=length)))
 all_words_of_length = []
 
@@ -94,7 +96,7 @@ class SpectralRegularization(nn.Module):
                 hankel_tensors.append(self.get_Hankel_tensor(model,l,VOCAB_SIZE))
             if 'block_diag' in russian_roulette_type:
                 if l > τ:
-                    hankel_tensors.append(-1 * torch.ones([VOCAB_SIZE-2] * l) * torch.inf)
+                    hankel_tensors.append(-1 * torch.ones([VOCAB_SIZE-2] * l).to(DEVICE) * torch.inf)
                 else:
                     hankel_tensors.append(self.get_Hankel_tensor(model,l,VOCAB_SIZE))
                     if russian_roulette_type == 'block_diag':

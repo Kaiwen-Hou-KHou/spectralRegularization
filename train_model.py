@@ -101,7 +101,7 @@ def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loade
         
         if USE_WANDB:
             wandb.log(results)
-            
+
         if epoch > 20:
             if early_stopping:
                 early_stopping(val_loss, model)
@@ -118,7 +118,7 @@ def parse_option():
     parser.add_argument('--stop_proba', type=float, default=0.2)
     parser.add_argument('--hankel_size_cap', type=int, default=11)
     parser.add_argument('--hankel_russ_roul_type', type=str, default='block_diag')
-    parser.add_argument('--patience', type=float, default=0.5)
+    parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--hidden_size', type=int, default=50)
     parser.add_argument('--n_epochs', type=int, default=1000)

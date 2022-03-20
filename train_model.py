@@ -126,6 +126,7 @@ def parse_option():
     parser.add_argument('--n_epochs', type=int, default=1000)
     parser.add_argument('--train_len', type=int, default=15)
     parser.add_argument('--test_len_list', nargs='+', type=int, default=[15,17,20])
+    parser.add_argument('--tag', type=str, default=None)
 
     opt = parser.parse_args()
     return opt
@@ -134,11 +135,13 @@ def parse_option():
 def main():
 
     opt = parse_option()
+
     if USE_WANDB:
         wandb.init()
         wandb.config.update(opt)
-        wandb.run.name = f"tom #{wandb.config.tomita_number}, lr={wandb.config.lr}, lambd={wandb.config.lambd}"
-        wandb.run.save()
+        wandb.run.name = f"tom #{wandb.config.tomita_number}, lr={wandb.config.lr}, lambd={wandb.config.lambd}, train_size={wandb.config.train_size}"
+        if opt.tag:
+            wandb.run.tags += (opt.tag,)
     else:
         wandb.config = opt
 

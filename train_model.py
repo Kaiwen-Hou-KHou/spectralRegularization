@@ -102,13 +102,10 @@ def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loade
         if USE_WANDB:
             wandb.log(results)
 
-        if epoch > 20:
-            if early_stopping:
-                early_stopping(val_loss, model)
-                if early_stopping.early_stop:
-                    break
-                else:
-                    best_model_trained = copy.deepcopy(model)
+        if early_stopping:
+            early_stopping(val_loss, model)
+            if early_stopping.early_stop:
+                break
                     
 
 def parse_option():
@@ -126,7 +123,7 @@ def parse_option():
     parser.add_argument('--n_epochs', type=int, default=1000)
     parser.add_argument('--train_len', type=int, default=15)
     parser.add_argument('--test_len_list', nargs='+', type=int, default=[15,17,20])
-    parser.add_argument('--tag', type=str, default=None)
+    parser.add_argument('--tag', nargs='+', type=str, default=None, action="append")
 
     opt = parser.parse_args()
     return opt
@@ -140,10 +137,13 @@ def main():
         wandb.init()
         wandb.config.update(opt)
         wandb.run.name = f"tom #{wandb.config.tomita_number}, lr={wandb.config.lr}, lambd={wandb.config.lambd}, train_size={wandb.config.train_size}"
+        print() 
         if opt.tag:
-            wandb.run.tags += (opt.tag,)
+            wandb.run.tags += tuple([" ".join(t) for t in opt.tag])
     else:
         wandb.config = opt
+
+    wandb.config["best_model_path"] = f"{wandb.run.id}-best_model.pt" if USE_WANDB else "checkpoint.pt"
 
     print("tomita number:", wandb.config.tomita_number)
     print("train size:", wandb.config.train_size)
@@ -176,11 +176,15 @@ def main():
                               nonlinearity='tanh').to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=wandb.config.lr, amsgrad=True)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
-    early_stopping = EarlyStopping(patience=wandb.config.patience, verbose=True)
+    early_stopping = EarlyStopping(patience=wandb.config.patience, verbose=True, path=wandb.config.best_model_path)
     res = train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loader, test_loader_dict, early_stopping=early_stopping)
 
-
+    if USE_WANDB:
+        wandb.save(wandb.config.best_model_path)
 
 
 if __name__ == '__main__':
+
+    import sys, os
+    #print(os.path.basename(sys.argv[0]), sys.argv[1:])
     main()

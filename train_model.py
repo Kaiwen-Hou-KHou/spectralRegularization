@@ -101,11 +101,12 @@ def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loade
         
         if USE_WANDB:
             wandb.log(results)
-
-        if early_stopping:
-            early_stopping(val_loss, model)
-            if early_stopping.early_stop:
-                break
+            
+        if epoch > 20:
+            if early_stopping:
+                early_stopping(val_loss, model)
+                if early_stopping.early_stop:
+                    break
                     
 
 def parse_option():

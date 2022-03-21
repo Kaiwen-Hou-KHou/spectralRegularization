@@ -22,7 +22,7 @@ USE_WANDB = True
 
 def pad_data(dataset, max_len, VOCAB_SIZE=4):
     split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-    return [l + [VOCAB_SIZE-1] * (max_len - len(l)) for l in split_str]
+    return [l + [VOCAB_SIZE-1] * (max_len - len(l) + 1) for l in split_str]
 
 def train_epoch(model, VOCAB_SIZE, optimizer, train_loader):
     model.train()
@@ -41,6 +41,7 @@ def train_epoch(model, VOCAB_SIZE, optimizer, train_loader):
     acc = []
     acc_ignore_markers = []
     for batch_idx, (inputs,targets) in enumerate(train_loader):
+        print(inputs)
         inputs = inputs.to(DEVICE).long()
         targets = targets.to(DEVICE).long()
         outputs = model(inputs)  # N x L x V
@@ -94,6 +95,9 @@ def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loade
             results['test_acc-' + str(test_len)] = test_acc
             results['test_aim-' + str(test_len)] = test_aim
             
+        # for i in range(10):
+        #     print(model.sample_word())
+
         res = train_epoch(model, VOCAB_SIZE, optimizer, train_loader) 
         results.update(res)
         

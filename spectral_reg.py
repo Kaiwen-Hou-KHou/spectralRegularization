@@ -32,11 +32,13 @@ class SpectralRegularization(nn.Module):
         if use_wandb:
             wandb.log({"tau":τ})
         tic()
+
         logH = self.make_hankel(model, τ, stopProb, VOCAB_SIZE, russian_roulette_type)
         if verbose > 0:
             print(f"running time for Hankel of size {logH.shape} (tau = {τ}, {russian_roulette_type}): {toc()} seconds")
 
-        return torch.norm(torch.exp(logH - logH.max()), p='nuc') #Hankel Loss...
+        out = torch.norm(torch.exp(logH - logH.max()), p='nuc') #Hankel Loss...
+        return out
 
 
     # @profile

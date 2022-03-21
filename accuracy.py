@@ -33,3 +33,11 @@ def Accuracy(outputs, targets, ignore_markers=False):
         return 1 - sum(sum(mask * (torch.argmax(outputs, axis=2) != targets).to(DEVICE)))/(B * L)
     else:
         return 1 - sum(sum(mask * (torch.argmax(outputs[:,:,:-2], axis=2) != targets).to(DEVICE)))/(B * L)
+
+def ratio_correct_samples(model, language, N_trials=100):
+    count = 0
+    for n in range(N_trials):
+        w = model.sample_word(max_length=50)
+        if language(w): count += 1
+    return count / N_trials
+

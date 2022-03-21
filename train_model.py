@@ -19,10 +19,8 @@ import argparse
 from argparse import RawTextHelpFormatter
 USE_WANDB = True
 
+tomita_function=None
 
-def pad_data(dataset, max_len, VOCAB_SIZE=4):
-    split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-    return [l + [VOCAB_SIZE-1] * (max_len - len(l)) for l in split_str]
 
 def train_epoch(model, VOCAB_SIZE, optimizer, train_loader):
     model.train()
@@ -32,15 +30,17 @@ def train_epoch(model, VOCAB_SIZE, optimizer, train_loader):
     train_cce_loss = 0
     train_hankel_loss = 0
     
-    if wandb.config.lambd > 0:
-        hankel_loss = spc_loss.forward(model, VOCAB_SIZE, stopProb=wandb.config.stop_proba, use_wandb=USE_WANDB, 
-                        hankelSizeCap=wandb.config.hankel_size_cap, russian_roulette_type=wandb.config.hankel_russ_roul_type)
-    else:
-        hankel_loss = torch.tensor(0)
+
     
     acc = []
     acc_ignore_markers = []
     for batch_idx, (inputs,targets) in enumerate(train_loader):
+        # print("BATCH SIZE",inputs.shape)
+        if wandb.config.lambd > 0:
+            hankel_loss = spc_loss.forward(model, VOCAB_SIZE, stopProb=wandb.config.stop_proba, use_wandb=USE_WANDB, 
+                            hankelSizeCap=wandb.config.hankel_size_cap, russian_roulette_type=wandb.config.hankel_russ_roul_type)
+        else:
+            hankel_loss = torch.tensor(0)
         inputs = inputs.to(DEVICE).long()
         targets = targets.to(DEVICE).long()
         outputs = model(inputs)  # N x L x V
@@ -77,39 +77,53 @@ def eval_epoch(model, data_loader):
             
             acc.append(Accuracy(outputs, targets, ignore_markers=False))
             acc_ignore_markers.append(Accuracy(outputs, targets, ignore_markers=True))
-    
+
     return total_loss / len(data_loader), torch.mean(torch.tensor(acc)), torch.mean(torch.tensor(acc_ignore_markers))
+
+def compute_val_test_metrics(model,val_loader,test_loader_dict,results,compute_ratio_correct_samples=False):
+    p='val_'
+    results[p+'loss'],results[p+'acc'],results[p+'aim'] = eval_epoch(model, val_loader)
+    for test_len, test_loader in test_loader_dict.items(): 
+        p='test' + str(test_len)
+        results[p+'loss'],results[p+'acc'],results[p+'aim'] = eval_epoch(model, test_loader)
+
+    if compute_ratio_correct_samples:
+        with torch.no_grad():
+            results['ratio_correct_samples'] = ratio_correct_samples(model,tomita_function)
+        # print(f"{results['ratio_correct_samples']*100}/100 correct samples")
 
 def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loader, test_loader_dict, early_stopping=None):
     results = {}
-    for epoch in tqdm(range(wandb.config.n_epochs)):
-        val_loss, val_acc, val_aim = eval_epoch(model, val_loader)
-        results['val_loss'] = val_loss
-        results['val_acc'] = val_acc
-        results['val_aim'] = val_aim
+    #compute test and valid metrics
+    compute_val_test_metrics(model,val_loader,test_loader_dict,results,True)
+    if USE_WANDB: wandb.log(results)
 
-        for test_len, test_loader in test_loader_dict.items():
-            test_loss, test_acc, test_aim = eval_epoch(model, test_loader)
-            results['test_loss-' + str(test_len)] = test_loss
-            results['test_acc-' + str(test_len)] = test_acc
-            results['test_aim-' + str(test_len)] = test_aim
-            
-        # for i in range(10):
-        #     print(model.sample_word())
+    for epoch in tqdm(range(wandb.config.n_epochs)):
+        
+        # with torch.no_grad():
+        #     samples = []
+        #     for i in range(10):
+        #         samples.append(model.sample_word())
+        #     print("|".join(samples))
 
         res = train_epoch(model, VOCAB_SIZE, optimizer, train_loader) 
         results.update(res)
         
-        scheduler.step(val_loss)
-        
-        if USE_WANDB:
-            wandb.log(results)
+        #compute test and valid metrics
+        compute_val_test_metrics(model,val_loader,test_loader_dict,results,True)
+        if USE_WANDB: wandb.log(results)
 
-        if epoch > 20:
-            if early_stopping:
-                early_stopping(val_loss, model)
-                if early_stopping.early_stop:
-                    break
+        val_loss = results['val_loss']
+        scheduler.step(val_loss)
+        if USE_WANDB:
+            for i, param_group in enumerate(optimizer.param_groups):
+                 wandb.log({'lr':float(param_group['lr'])})
+
+
+        if early_stopping:
+            early_stopping(val_loss, model)
+            if early_stopping.early_stop:
+                break
                     
 
 def parse_option():
@@ -121,10 +135,12 @@ def parse_option():
     parser.add_argument('--stop_proba', type=float, default=0.2)
     parser.add_argument('--hankel_size_cap', type=int, default=11)
     parser.add_argument('--hankel_russ_roul_type', type=str, default='block_diag')
-    parser.add_argument('--patience', type=int, default=10)
+    parser.add_argument('--earlystop_patience', type=int, default=20)
+    parser.add_argument('--reduceonplateau_patience', type=int, default=10)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--hidden_size', type=int, default=50)
     parser.add_argument('--n_epochs', type=int, default=1000)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--train_len', type=int, default=15)
     parser.add_argument('--test_len_list', nargs='+', type=int, default=[15,17,20])
     parser.add_argument('--tag', nargs='+', type=str, default=None, action="append")
@@ -147,42 +163,44 @@ def main():
     else:
         wandb.config = opt
 
-    wandb.config["best_model_path"] = f"{wandb.run.id}-best_model.pt" if USE_WANDB else "checkpoint.pt"
-
+    wandb.config["best_model_path"] = f"models/{wandb.run.id}-best_model.pt" if USE_WANDB else "models/checkpoint.pt"
+    global tomita_function
+    f = globals()[f"tomita_{opt.tomita_number}"]
+    tomita_function = lambda w: f(w) and not "2" in w
     print("tomita number:", wandb.config.tomita_number)
     print("train size:", wandb.config.train_size)
+    VOCAB_SIZE = 4
         
     # generate test data
     data_split = 0.99999999  # ???
     import jax
     rng_key = jax.random.PRNGKey(12345)
-    
     data_dict = {}
-    test_dataset_dict = {}
     test_loader_dict = {}
     
 
-    ### FIX THIS! Test train and val are overlapping!!!
-    # generate test data
+
+
+    # generate data
+    train_len, val_len = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
+    test_len = 2000
+    dataset = tomita_dataset(rng_key, data_split, wandb.config.train_len, tomita_num=wandb.config.tomita_number)[0] 
+    train_loader, val_loader, _ = get_data_split(dataset, train_len, val_len, 0, batch_size=wandb.config.batch_size, overlap=True)
+
+
     for max_len in tqdm(wandb.config.test_len_list):
-        dataset = tomita_dataset(rng_key, data_split, max_len, tomita_num=wandb.config.tomita_number, min_len=max_len)[0] # fix length on test dataset
-        data_dict[max_len] = pad_data(dataset, max_len)
-        dataForTesting = np.array(random.choices(data_dict[max_len],k=2000))
-        test_data = torch.tensor(dataForTesting)
-        test_dataset_dict[max_len] = SimpleDataset(test_data)
-        test_loader_dict[max_len] = DataLoader(test_dataset_dict[max_len], shuffle=False, batch_size=len(test_data), collate_fn = collate, drop_last=True)
+        dataset = tomita_dataset(rng_key, data_split, max_len=max_len, tomita_num=wandb.config.tomita_number, min_len=max_len)[0] # fix length on test dataset
+        _,_,test_loader_dict[max_len] = get_data_split(dataset, 0, 0, test_len, overlap=True)
+        #DataLoader(test_dataset_dict[max_len], shuffle=False, batch_size=len(test_data), collate_fn = collate, drop_last=True)
     
     # generate training data
-    dataset = tomita_dataset(rng_key, data_split, wandb.config.train_len, tomita_num=wandb.config.tomita_number)[0] 
-    data = pad_data(dataset, wandb.config.train_len)
-    train_loader, val_loader, VOCAB_SIZE = get_random_training_data(data, opt.train_size, split=0.8)
     
     # train model
-    model = CharLanguageModel(vocab_size = VOCAB_SIZE, embed_size = VOCAB_SIZE, hidden_size=wandb.config.hidden_size, nlayers=1, rnn_type='RNN', 
+    model = CharLanguageModel(vocab_size = VOCAB_SIZE, embed_size = -1, hidden_size=wandb.config.hidden_size, nlayers=1, rnn_type='RNN', 
                               nonlinearity='tanh').to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=wandb.config.lr, amsgrad=True)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
-    early_stopping = EarlyStopping(patience=wandb.config.patience, verbose=True, path=wandb.config.best_model_path)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',patience=wandb.config.reduceonplateau_patience,factor=0.5)
+    early_stopping = EarlyStopping(patience=wandb.config.earlystop_patience, verbose=True, path=wandb.config.best_model_path)
     res = train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loader, test_loader_dict, early_stopping=early_stopping)
 
     if USE_WANDB:

@@ -15,6 +15,6 @@ for i in range(2,size_cap):
 	H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=i, 
 		russian_roulette_type='block_diag', verbose=1)
 	print("trace norm:",H.item())
-	H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=i, verbose=1)
-	print("trace norm:",H.item())
+	# H = specreg.forward(model,VOCAB_SIZE=4, stopProb=0.00001, hankelSizeCap=i, verbose=1)
+	# print("trace norm:",H.item())
 	print()

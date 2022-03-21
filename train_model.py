@@ -22,7 +22,7 @@ USE_WANDB = True
 
 def pad_data(dataset, max_len, VOCAB_SIZE=4):
     split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-    return [l + [VOCAB_SIZE-1] * (max_len - len(l) + 1) for l in split_str]
+    return [l + [VOCAB_SIZE-1] * (max_len - len(l)) for l in split_str]
 
 def train_epoch(model, VOCAB_SIZE, optimizer, train_loader):
     model.train()
@@ -41,7 +41,6 @@ def train_epoch(model, VOCAB_SIZE, optimizer, train_loader):
     acc = []
     acc_ignore_markers = []
     for batch_idx, (inputs,targets) in enumerate(train_loader):
-        print(inputs)
         inputs = inputs.to(DEVICE).long()
         targets = targets.to(DEVICE).long()
         outputs = model(inputs)  # N x L x V
@@ -162,6 +161,8 @@ def main():
     test_dataset_dict = {}
     test_loader_dict = {}
     
+
+    ### FIX THIS! Test train and val are overlapping!!!
     # generate test data
     for max_len in tqdm(wandb.config.test_len_list):
         dataset = tomita_dataset(rng_key, data_split, max_len, tomita_num=wandb.config.tomita_number, min_len=max_len)[0] # fix length on test dataset

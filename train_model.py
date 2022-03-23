@@ -134,7 +134,7 @@ def parse_option():
     parser.add_argument('--test_size', type=int, default=2000)
     parser.add_argument('--lambd', type=float, default=0)
     parser.add_argument('--stop_proba', type=float, default=0.2)
-    parser.add_argument('--hankel_size_cap', type=int, default=11)
+    parser.add_argument('--hankel_size_cap', type=int, default=10)
     parser.add_argument('--hankel_russ_roul_type', type=str, default='block_diag')
     parser.add_argument('--earlystop_patience', type=int, default=20)
     parser.add_argument('--reduceonplateau_patience', type=int, default=10)
@@ -142,8 +142,8 @@ def parse_option():
     parser.add_argument('--hidden_size', type=int, default=50)
     parser.add_argument('--n_epochs', type=int, default=1000)
     parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--train_len', type=int, default=15)
-    parser.add_argument('--test_len_list', nargs='+', type=int, default=[15,17,20])
+    parser.add_argument('--train_len', type=int, default=10)
+    parser.add_argument('--test_len_list', nargs='+', type=int, default=[10,12,14])
     parser.add_argument('--tag', nargs='+', type=str, default=None, action="append")
 
     opt = parser.parse_args()
@@ -157,8 +157,9 @@ def main():
     if USE_WANDB:
         wandb.init()
         wandb.config.update(opt)
-        wandb.run.name = f"tom #{wandb.config.tomita_number}, lr={wandb.config.lr}, lambd={wandb.config.lambd}, train_size={wandb.config.train_size}"
-        print() 
+        wandb.run.name = f"tom #{wandb.config.tomita_number}, lambd={wandb.config.lambd},"
+        wandb.run.name += f" train_size={wandb.config.train_size}, {wandb.config.hankel_russ_roul_type}-{wandb.config.stop_proba}"
+        
         if opt.tag:
             wandb.run.tags += tuple([" ".join(t) for t in opt.tag])
     else:
@@ -196,7 +197,6 @@ def main():
 
 
     # generate training data
-    sys.exit(0)
     # train model
     model = CharLanguageModel(vocab_size = VOCAB_SIZE, embed_size = VOCAB_SIZE, hidden_size=wandb.config.hidden_size, nlayers=1, rnn_type='RNN', 
                               nonlinearity='tanh').to(DEVICE)

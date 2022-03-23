@@ -12,6 +12,8 @@ from torch.nn import functional as F
 import torch
 from torch.distributions import Categorical
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 class CharLanguageModel(nn.Module):
 
     def __init__(self, vocab_size, embed_size, hidden_size, nlayers, rnn_type='RNN', nonlinearity='tanh'):
@@ -61,7 +63,7 @@ class CharLanguageModel(nn.Module):
         return output_flatten.view(batch_size, -1, self.vocab_size)  # N x L x V
 
     def sample_word(self, max_length=1e10):
-        symb = torch.tensor(self.vocab_size-2).reshape([1,1]) # start of seq
+        symb = torch.tensor(self.vocab_size-2).reshape([1,1]).to(DEVICE) # start of seq
         hidden = None
         out = []
         while True:

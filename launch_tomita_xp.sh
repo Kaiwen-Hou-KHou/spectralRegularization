@@ -25,7 +25,7 @@ for lambda in ${lambdas[@]}; do
     for lr in ${learning_rates[@]}; do
         for train_size in ${train_sizes[@]}; do
         	CMD="./train_model.sh --lr $lr --tomita_number $tomita_number \
-               --train_size $train_size --lambd $lambda --stop_proba $stop_proba --hankel_russ_roul_type $russ_type\
+               --train_size $train_size --lambd $lambda \
                --train_len $train_length --test_len_list $test_lengths --tag $tag --batch_size 128"
             echo "launching: " $CMD 
             sbatch --mem 10g -c 2 -G 1 -t 02:00:00 $CMD

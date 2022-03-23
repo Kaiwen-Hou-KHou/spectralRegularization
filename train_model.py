@@ -9,6 +9,7 @@ from simple_datasets import *
 from char_lang_model import CharLanguageModel
 from early_stop import EarlyStopping
 from tqdm import tqdm
+from utils import seed_everything
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 #DEVICE = "cpu"
@@ -128,16 +129,16 @@ def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loade
 
 def parse_option():
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
-
     parser.add_argument('--tomita_number', type=int, default=3)
     parser.add_argument('--train_size', type=int, default=1000)
+    parser.add_argument('--test_size', type=int, default=2000)
     parser.add_argument('--lambd', type=float, default=0)
     parser.add_argument('--stop_proba', type=float, default=0.2)
     parser.add_argument('--hankel_size_cap', type=int, default=11)
     parser.add_argument('--hankel_russ_roul_type', type=str, default='block_diag')
     parser.add_argument('--earlystop_patience', type=int, default=20)
     parser.add_argument('--reduceonplateau_patience', type=int, default=10)
-    parser.add_argument('--lr', type=float, default=0.1)
+    parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--hidden_size', type=int, default=50)
     parser.add_argument('--n_epochs', type=int, default=1000)
     parser.add_argument('--batch_size', type=int, default=128)
@@ -172,9 +173,9 @@ def main():
     VOCAB_SIZE = 4
         
     # generate test data
-    data_split = 0.99999999  # ???
+    data_split = 0.999999999  # ???
     import jax
-    rng_key = jax.random.PRNGKey(12345)
+    rng_key = seed_everything(12345)
     data_dict = {}
     test_loader_dict = {}
     
@@ -182,21 +183,22 @@ def main():
 
 
     # generate data
-    train_len, val_len = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
-    test_len = 2000
-    dataset = tomita_dataset(rng_key, data_split, wandb.config.train_len, tomita_num=wandb.config.tomita_number)[0] 
-    train_loader, val_loader, _ = get_data_split(dataset, train_len, val_len, 0, batch_size=wandb.config.batch_size, overlap=True)
-
+    train_size, val_size = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
+    test_size = wandb.config.test_size
 
     for max_len in tqdm(wandb.config.test_len_list):
         dataset = tomita_dataset(rng_key, data_split, max_len=max_len, tomita_num=wandb.config.tomita_number, min_len=max_len)[0] # fix length on test dataset
-        _,_,test_loader_dict[max_len] = get_data_split(dataset, 0, 0, test_len, overlap=True)
-        #DataLoader(test_dataset_dict[max_len], shuffle=False, batch_size=len(test_data), collate_fn = collate, drop_last=True)
-    
+        _,_,test_loader_dict[max_len] = get_data_split(dataset, 0, 0, test_size, overlap=True)
+
+    dataset = tomita_dataset(rng_key, data_split, wandb.config.train_len, tomita_num=wandb.config.tomita_number)[0] 
+    train_loader, val_loader, _ = get_data_split(dataset, train_size, val_size, 0, batch_size=wandb.config.batch_size, overlap=True)
+
+
+
     # generate training data
-    
+    sys.exit(0)
     # train model
-    model = CharLanguageModel(vocab_size = VOCAB_SIZE, embed_size = -1, hidden_size=wandb.config.hidden_size, nlayers=1, rnn_type='RNN', 
+    model = CharLanguageModel(vocab_size = VOCAB_SIZE, embed_size = VOCAB_SIZE, hidden_size=wandb.config.hidden_size, nlayers=1, rnn_type='RNN', 
                               nonlinearity='tanh').to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=wandb.config.lr, amsgrad=True)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',patience=wandb.config.reduceonplateau_patience,factor=0.5)

@@ -12,13 +12,13 @@ done
 
 
 learning_rates=(0.01)
-lambdas=(0.001 0.005 0.01)
-train_sizes=(100 250 500 1000 2000)
+lambdas=(0.0001 0.0005 0.001 0.005)
+train_sizes=(50 100 250 500 1000 2000)
 russ_types=('block_diag' 'block_diag_no_norm')
 stop_probas=(0.0000001 0.1 0.2)
 
-train_length=10
-test_lengths='10 12 14'  
+train_length=12
+test_lengths='12 13 14'  
 
 # No regularization
     for lr in ${learning_rates[@]}; do

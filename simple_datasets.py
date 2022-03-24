@@ -50,12 +50,13 @@ def get_data_split(data,train_len,val_len,test_len,batch_size=128,overlap=False)
     data = pad_data(data, VOCAB_SIZE=VOCAB_SIZE)
     random.shuffle(data)
     if overlap:
-        train,val,test = [torch.tensor(random.choices(data,k=n)) for n in [train_len,val_len,test_len]]
+        test,train,val = [torch.tensor(random.choices(data,k=n)) for n in [test_len,train_len,val_len]]
     else:
-        assert(train_len+val_len+test_len <= len(data))
-        train,data = data[:train_len],data[train_len:]
-        val,data = data[:val_len],data[val_len:]
-        test,data = data[:test_len],data[test_len:]
+        print(f"{train_len}+{val_len}+{test_len} --- {len(data)}")
+        assert(train_len+val_len+test_len <= len(data)), f"{train_len}+{val_len}+{test_len} > {len(data)}"
+        train,data = torch.tensor(data[:train_len]),data[train_len:]
+        val,data = torch.tensor(data[:val_len]),data[val_len:]
+        test,data = torch.tensor(data[:test_len]),data[test_len:]
     datasets = []
     datasets.append(DataLoader(SimpleDataset(train), shuffle=True, batch_size=batch_size, collate_fn = collate) if train_len > 0 else None) 
     datasets.append(DataLoader(SimpleDataset(val), shuffle=True, batch_size=len(val), collate_fn = collate) if val_len > 0 else None)

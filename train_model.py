@@ -182,17 +182,30 @@ def main():
     
 
 
+    if False:
+        # generate data
+        train_size, val_size = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
+        test_size = wandb.config.test_size
 
-    # generate data
-    train_size, val_size = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
-    test_size = wandb.config.test_size
+        for max_len in tqdm(wandb.config.test_len_list):
+            dataset = tomita_dataset(rng_key, data_split, max_len=max_len, tomita_num=wandb.config.tomita_number, min_len=max_len)[0] # fix length on test dataset
+            _,_,test_loader_dict[max_len] = get_data_split(dataset, 0, 0, test_size, overlap=True)
 
-    for max_len in tqdm(wandb.config.test_len_list):
-        dataset = tomita_dataset(rng_key, data_split, max_len=max_len, tomita_num=wandb.config.tomita_number, min_len=max_len)[0] # fix length on test dataset
-        _,_,test_loader_dict[max_len] = get_data_split(dataset, 0, 0, test_size, overlap=True)
+        dataset = tomita_dataset(rng_key, data_split, wandb.config.train_len, tomita_num=wandb.config.tomita_number)[0] 
+        train_loader, val_loader, _ = get_data_split(dataset, train_size, val_size, 0, batch_size=wandb.config.batch_size, overlap=True)
+    else:
+        train_size, val_size = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
+        test_size = wandb.config.test_size
 
-    dataset = tomita_dataset(rng_key, data_split, wandb.config.train_len, tomita_num=wandb.config.tomita_number)[0] 
-    train_loader, val_loader, _ = get_data_split(dataset, train_size, val_size, 0, batch_size=wandb.config.batch_size, overlap=True)
+        dataset = tomita_dataset(rng_key, data_split, wandb.config.train_len, tomita_num=wandb.config.tomita_number)[0] 
+        if wandb.config.train_len in wandb.config.test_len_list:
+            train_loader, val_loader, test_loader_dict[wandb.config.train_len] = get_data_split(dataset, train_size, val_size, test_size, batch_size=wandb.config.batch_size, overlap=False)
+        else:
+            train_loader, val_loader, test_loader_dict[max_len] = get_data_split(dataset, train_size, val_size, 0, batch_size=wandb.config.batch_size, overlap=False)
+        for max_len in tqdm(wandb.config.test_len_list):
+            if max_len == wandb.config.train_len: continue
+            dataset = tomita_dataset(rng_key, data_split, max_len=max_len, tomita_num=wandb.config.tomita_number, min_len=max_len)[0] # fix length on test dataset
+            _,_,test_loader_dict[max_len] = get_data_split(dataset, 0, 0, test_size, overlap=False)
 
 
 

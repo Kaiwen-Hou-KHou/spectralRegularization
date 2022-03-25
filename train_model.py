@@ -180,9 +180,9 @@ def main():
     data_dict = {}
     test_loader_dict = {}
     
+    overlaping_datasets = False
 
-
-    if False:
+    if overlaping_datasets:
         # generate data
         train_size, val_size = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
         test_size = wandb.config.test_size

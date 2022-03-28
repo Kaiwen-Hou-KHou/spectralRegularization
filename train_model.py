@@ -176,7 +176,7 @@ def main():
     # generate test data
     data_split = 0.999999999  # ???
     import jax
-    rng_key = seed_everything(12345)
+    rng_key = seed_everything(42)
     data_dict = {}
     test_loader_dict = {}
     

@@ -58,7 +58,7 @@ def get_data_split(data,train_len,val_len,test_len,batch_size=128,overlap=False)
         train,data = torch.tensor(data[:train_len]),data[train_len:]
         test,data = torch.tensor(data[-test_len:]),data[:test_len]
     datasets = []
-    datasets.append(DataLoader(SimpleDataset(train), shuffle=True, batch_size=batch_size, collate_fn = collate) if train_len > 0 else None) 
+    datasets.append(DataLoader(SimpleDataset(train), shuffle=True, batch_size=batch_size, collate_fn = collate, drop_last=True) if train_len > 0 else None) 
     datasets.append(DataLoader(SimpleDataset(val), shuffle=False, batch_size=len(val), collate_fn = collate) if val_len > 0 else None)
     datasets.append(DataLoader(SimpleDataset(test), shuffle=False, batch_size=len(test), collate_fn = collate) if test_len > 0 else None)
 

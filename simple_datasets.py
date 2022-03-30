@@ -11,6 +11,21 @@ import random
 def load_simple_data(data_path):
     return torch.from_numpy(np.load(data_path)).long()
 
+def get_sos_and_eos(lst, padded=False):
+    max_digit = max([max(i) for i in lst])
+    min_digit = min([min(i) for i in lst])
+    if padded:
+        VOCAB_SIZE = max_digit - min_digit + 1
+        sos_token = max_digit - 1
+        eos_token = max_digit
+    else:
+        VOCAB_SIZE = max_digit - min_digit + 1 + 2
+        # +1 due to inclusiveness; +2 due to SOS and EOS
+        sos_token = max_digit + 1
+        eos_token = max_digit + 2
+    return VOCAB_SIZE, sos_token, eos_token
+
+
 # Dataset class
 class SimpleDataset(Dataset):
     ''' Transform toydata to dataset
@@ -18,8 +33,9 @@ class SimpleDataset(Dataset):
     def __init__(self, simple_data):
         self.data = simple_data  # N x seq_len
         # VOC SIZE IS HARD CODED !!!!!
-        self.sos_token = 2#simple_data.max() +1  # SOS token    
-        self.eos_token = 3#simple_data.max() +2  # EOS token
+        VOCAB_SIZE, self.sos_token, self.eos_token = get_sos_and_eos(simple_data, padded=True)
+#         self.sos_token = 2#simple_data.max() +1  # SOS token    
+#         self.eos_token = 3#simple_data.max() +2  # EOS token
 
     def __getitem__(self, i):
         seq = self.data[i]
@@ -28,14 +44,13 @@ class SimpleDataset(Dataset):
     
     def __len__(self):
         return self.data.shape[0]
-
+    
 
 def pad_data(dataset, split_method='any', remove_header=True):
     max_len = max([len(s) for s in dataset])
     if split_method == 'any':
         split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-        VOCAB_SIZE = max([max(i) for i in split_str]) - min([min(i) for i in split_str]) + 1 + 2 
-        # +1 due to inclusiveness; +2 due to SOS and EOS
+        VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
         
     elif split_method == 'space':
         split_str = [i.split() for i in dataset]
@@ -44,18 +59,16 @@ def pad_data(dataset, split_method='any', remove_header=True):
             print('Header of dataset: '+str(split_str[0]))
             split_str = [list(np.array(i).astype(int)) for i in split_str[1:]]
             print('Length of dataset: '+str(len(split_str)))
-            VOCAB_SIZE = max([max(i) for i in split_str]) - min([min(i) for i in split_str]) + 1 + 2
+            VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
         else:
             split_str = [list(np.array(i).astype(int)) for i in split_str]
             print('Length of dataset: '+str(len(split_str)))
-            VOCAB_SIZE = max([max(i) for i in split_str]) - min([min(i) for i in split_str]) + 1 + 2
+            VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
         
     else:
         raise ValueError('Unsupported split method')
     
-    EOS = VOCAB_SIZE - 1
-    
-    return [ll + [EOS] * (max_len - len(ll)) for ll in split_str]
+    return [[sos_token] + ll + [eos_token] * (max_len - len(ll)) for ll in split_str], VOCAB_SIZE
 
 
 
@@ -93,10 +106,12 @@ def get_data_split(data,train_len,val_len,test_len,batch_size=128,overlap=False)
 
 
 def get_first_N_training_data(data, N, split=0.7):
+    # padded data
     
     simple_data = torch.tensor(data[:int(N*split)])
     val_data = torch.tensor(data[int(N*split):int(N)])
-    VOCAB_SIZE = 4
+    
+    VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(simple_data, padded=True)
 
     train_dataset = SimpleDataset(simple_data)
     val_dataset = SimpleDataset(val_data)
@@ -108,11 +123,13 @@ def get_first_N_training_data(data, N, split=0.7):
 
 
 def get_random_training_data(data, N, split=0.7, batch_size=128):
+    # padded data
+    
     import random
     simple_data = torch.tensor(random.choices(data,k=int(N*split)))
     val_data = torch.tensor(random.choices(data,k=int(N*(1-split))))   
 
-    VOCAB_SIZE = 4  # hardcoded !!!
+    VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(simple_data, padded=True)  # hardcoded !!!
 
     train_dataset = SimpleDataset(simple_data)
     val_dataset = SimpleDataset(val_data)

@@ -80,8 +80,8 @@ def collate(seq_list):
     return inputs, targets 
 
 def get_data_split(data,train_len,val_len,test_len,batch_size=128,overlap=False):
-    VOCAB_SIZE = len(set("".join(data))) + 2 # add BOS and EOS to the alphabet
-    data = pad_data(data, VOCAB_SIZE=VOCAB_SIZE)
+    
+    data, VOCAB_SIZE = pad_data(data)
     random.shuffle(data)
     if overlap:
         test,train,val = [torch.tensor(random.choices(data,k=n)) for n in [test_len,train_len,val_len]]

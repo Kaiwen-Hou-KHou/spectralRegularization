@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from toy_datasets import tomita_dataset
+from toy_datasets import tomita_dataset,tomita_2,tomita_3,tomita_4,tomita_5,tomita_6,tomita_7
 from simple_datasets import get_data_split
 
 from char_lang_model import CharLanguageModel
@@ -183,7 +183,7 @@ def main():
     #data_dict = {}
     test_loader_dict = {}
     
-    overlaping_datasets = False
+    overlaping_datasets = True
 
     if overlaping_datasets:
         # generate data

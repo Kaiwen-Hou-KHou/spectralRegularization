@@ -30,10 +30,34 @@ class SimpleDataset(Dataset):
         return self.data.shape[0]
 
 
-def pad_data(dataset, VOCAB_SIZE=4):
+def pad_data(dataset, split_method='any', remove_header=True):
     max_len = max([len(s) for s in dataset])
-    split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-    return [l + [VOCAB_SIZE-1] * (max_len - len(l)) for l in split_str]
+    if split_method == 'any':
+        split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
+        VOCAB_SIZE = max([max(i) for i in split_str]) - min([min(i) for i in split_str]) + 1 + 2 
+        # +1 due to inclusiveness; +2 due to SOS and EOS
+        
+    elif split_method == 'space':
+        split_str = [i.split() for i in dataset]
+        split_str.remove([])
+        if remove_header:
+            print('Header of dataset: '+str(split_str[0]))
+            split_str = [list(np.array(i).astype(int)) for i in split_str[1:]]
+            print('Length of dataset: '+str(len(split_str)))
+            VOCAB_SIZE = max([max(i) for i in split_str]) - min([min(i) for i in split_str]) + 1 + 2
+        else:
+            split_str = [list(np.array(i).astype(int)) for i in split_str]
+            print('Length of dataset: '+str(len(split_str)))
+            VOCAB_SIZE = max([max(i) for i in split_str]) - min([min(i) for i in split_str]) + 1 + 2
+        
+    else:
+        raise ValueError('Unsupported split method')
+    
+    EOS = VOCAB_SIZE - 1
+    
+    return [ll + [EOS] * (max_len - len(ll)) for ll in split_str]
+
+
 
 def collate(seq_list):
     '''Transform a list of sequences into a batch

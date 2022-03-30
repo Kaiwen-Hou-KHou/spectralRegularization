@@ -147,7 +147,7 @@ def main(train_len=15, test_len_list=[15, 17, 20], lam_list = [0, 0.001, 0.01, 0
     
     for max_len in tqdm(test_len_list):
         dataset = tomita_dataset(rng_key, data_split, max_len, tomita_num=opt.tomita_number, min_len=max_len)[0] # fix length on test dataset
-        data_dict[max_len] = pad_data(dataset, max_len)
+        data_dict[max_len] = pad_data(dataset)
         dataForTesting = np.array(random.choices(data_dict[max_len],k=2000))
         test_data = torch.tensor(dataForTesting)
         test_dataset_dict[max_len] = SimpleDataset(test_data)
@@ -155,7 +155,7 @@ def main(train_len=15, test_len_list=[15, 17, 20], lam_list = [0, 0.001, 0.01, 0
     
     # generate training data
     dataset = tomita_dataset(rng_key, data_split, train_len, tomita_num=opt.tomita_number)[0] 
-    data = pad_data(dataset, train_len)
+    data = pad_data(dataset)
     train_loader, val_loader, VOCAB_SIZE = get_random_training_data(data, opt.train_size, split=0.8)
     
     # store experiments

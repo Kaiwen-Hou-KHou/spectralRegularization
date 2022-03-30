@@ -39,7 +39,7 @@ class SimpleDataset(Dataset):
 
     def __getitem__(self, i):
         seq = self.data[i]
-        seq = torch.cat((torch.tensor([self.sos_token]), seq, torch.tensor([self.eos_token])))  # add SOS, EOS token
+        #seq = torch.cat((torch.tensor([self.sos_token]), seq, torch.tensor([self.eos_token])))  # add SOS, EOS token
         return seq[:-1], seq[1:]  # labels are the input sequence shifted by 1
     
     def __len__(self):
@@ -47,6 +47,7 @@ class SimpleDataset(Dataset):
     
 
 def pad_data(dataset, split_method='any', remove_header=True):
+    # pad data and add BOS and EOS tokens
     max_len = max([len(s) for s in dataset])
     if split_method == 'any':
         split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
@@ -68,7 +69,8 @@ def pad_data(dataset, split_method='any', remove_header=True):
     else:
         raise ValueError('Unsupported split method')
     
-    return [[sos_token] + ll + [eos_token] * (max_len - len(ll)) for ll in split_str], VOCAB_SIZE
+    padded_data = [[sos_token] + ll + [eos_token] * (max_len - len(ll) + 1) for ll in split_str]
+    return padded_data, VOCAB_SIZE
 
 
 

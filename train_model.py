@@ -148,6 +148,7 @@ def parse_option():
     parser.add_argument('--train_len', type=int, default=10)
     parser.add_argument('--test_len_list', nargs='+', type=int, default=[10,12,14])
     parser.add_argument('--tag', nargs='+', type=str, default=None, action="append")
+    parser.add_argument('--overlap_datasets', type=bool, default=False)
 
     opt = parser.parse_args()
     return opt
@@ -182,10 +183,8 @@ def main():
     rng_key = seed_everything(42)
     #data_dict = {}
     test_loader_dict = {}
-    
-    overlaping_datasets = False
 
-    if overlaping_datasets:
+    if wandb.config.overlap_datasets:
         # generate data
         train_size, val_size = int(0.8*wandb.config.train_size),int(0.2*wandb.config.train_size)
         test_size = wandb.config.test_size

@@ -183,7 +183,7 @@ def main():
     #data_dict = {}
     test_loader_dict = {}
     
-    overlaping_datasets = True
+    overlaping_datasets = False
 
     if overlaping_datasets:
         # generate data

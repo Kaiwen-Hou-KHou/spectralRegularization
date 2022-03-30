@@ -27,12 +27,17 @@ def Accuracy(outputs, targets, ignore_markers=False):
     outputs: B * (L+1) * VOCAB_SIZE
     targets: B * (L+1)
     """
+    print(outputs)
+    print(targets)
     B, L = targets.size()
     mask = get_mask(targets)
+    print(mask)
+    print(mask * (torch.argmax(outputs, axis=2) != targets))
+    print(torch.argmax(outputs[:,:,:-2], axis=2) != targets)
     if not ignore_markers:
         return 1 - sum(sum(mask * (torch.argmax(outputs, axis=2) != targets).to(DEVICE)))/(B * L)
     else:
-        return 1 - sum(sum(mask * (torch.argmax(outputs[:,:,:-2], axis=2) != targets).to(DEVICE)))/(B * L)
+        return 1 - sum(sum(mask * (torch.argmax(outputs[:,:,:-2], axis=2) != targets).to(DEVICE)))/(B * L)  ## I think this is false!
 
 def ratio_correct_samples(model, language, N_trials=100):
     count = 0

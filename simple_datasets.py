@@ -122,10 +122,12 @@ def get_first_N_training_data(data, N, split=0.7):
     return [train_loader, val_loader, VOCAB_SIZE]
 
 
-def get_random_training_data(data, N, split=0.7, batch_size=128):
+def get_random_training_data(data, split=0.7, batch_size=128):
     # padded data
     
     import random
+    
+    N = len(data)
     simple_data = torch.tensor(random.choices(data,k=int(N*split)))
     val_data = torch.tensor(random.choices(data,k=int(N*(1-split))))   
 

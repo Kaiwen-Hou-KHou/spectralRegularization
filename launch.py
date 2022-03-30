@@ -1,14 +1,22 @@
+import jax
+import numpy as np
+import random
+
 import torch
 import torch.nn as nn
-import copy
-from spectral_reg import *
-from accuracy import *
-import random
-from toy_datasets import *
-from simple_datasets import *
+
+from toy_datasets import tomita_dataset
+from simple_datasets import SimpleDataset, collate, pad_data, get_random_training_data
+from torch.utils.data import DataLoader
+
 from char_lang_model import CharLanguageModel
+from spectral_reg import SpectralRegularization
 from early_stop import EarlyStopping
+from accuracy import Accuracy#, ratio_correct_samples
+
 from tqdm import tqdm
+#import copy
+
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -23,10 +31,6 @@ def parse_option():
     parser.add_argument('--name', type=str)
     opt = parser.parse_args()
     return opt
-
-def pad_data(dataset, max_len, VOCAB_SIZE=4):
-    split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-    return [l + [VOCAB_SIZE-1] * (max_len - len(l)) for l in split_str]
 
 def train_epoch(model, VOCAB_SIZE, optimizer, train_loader, lam, stopProb = 0.2):
     model.train()
@@ -117,8 +121,8 @@ def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loade
                 early_stopping(val_loss, model)
                 if early_stopping.early_stop:
                     break
-                else:
-                    best_model_trained = copy.deepcopy(model)
+                #else:
+                #    best_model_trained = copy.deepcopy(model)
                     
         results['last_model'] = model
 
@@ -143,7 +147,7 @@ def main(train_len=15, test_len_list=[15, 17, 20], lam_list = [0, 0.001, 0.01, 0
     
     for max_len in tqdm(test_len_list):
         dataset = tomita_dataset(rng_key, data_split, max_len, tomita_num=opt.tomita_number, min_len=max_len)[0] # fix length on test dataset
-        data_dict[max_len] = pad_data(dataset, max_len)
+        data_dict[max_len] = pad_data(dataset)
         dataForTesting = np.array(random.choices(data_dict[max_len],k=2000))
         test_data = torch.tensor(dataForTesting)
         test_dataset_dict[max_len] = SimpleDataset(test_data)
@@ -151,7 +155,7 @@ def main(train_len=15, test_len_list=[15, 17, 20], lam_list = [0, 0.001, 0.01, 0
     
     # generate training data
     dataset = tomita_dataset(rng_key, data_split, train_len, tomita_num=opt.tomita_number)[0] 
-    data = pad_data(dataset, train_len)
+    data = pad_data(dataset)
     train_loader, val_loader, VOCAB_SIZE = get_random_training_data(data, opt.train_size, split=0.8)
     
     # store experiments
@@ -160,8 +164,8 @@ def main(train_len=15, test_len_list=[15, 17, 20], lam_list = [0, 0.001, 0.01, 0
         model = CharLanguageModel(vocab_size = VOCAB_SIZE, embed_size = VOCAB_SIZE, hidden_size=50, nlayers=1, rnn_type='RNN', 
                               nonlinearity='tanh').to(DEVICE)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-1, amsgrad=True)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
-        early_stopping = EarlyStopping(patience=10, verbose=True)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10)
+        early_stopping = EarlyStopping(patience=20, verbose=True)
         res = train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loader, test_loader_dict, lam=lam, 
                                                                                early_stopping=early_stopping, 
                                                                                n_epoch=1000)

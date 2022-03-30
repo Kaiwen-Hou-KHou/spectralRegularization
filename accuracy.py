@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Accuracy Metric
-
-@author: Kaiwen Hou
-kaiwen.hou@mila.quebec
+Accuracy Metrics
 """
 
 import torch

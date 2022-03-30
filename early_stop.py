@@ -2,30 +2,16 @@
 """
 Early Stopping
 
-@author: Kaiwen Hou
-kaiwen.hou@mila.quebec
+Adapted from Ignite EarlyStopping Class
 """
 
 import numpy as np
 import torch
-import wandb
+#import wandb
 
 class EarlyStopping:
     
-    def __init__(self, patience=3, verbose=False, delta=0, path='checkpoint.pt', trace_func=print):
-        """
-        Args:
-            patience (int): How long to wait after last time validation loss improved.
-                            Default: 3
-            verbose (bool): If True, prints a message for each validation loss improvement. 
-                            Default: False
-            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-                            Default: 0
-            path (str): Path for the checkpoint to be saved to.
-                            Default: 'checkpoint.pt'
-            trace_func (function): trace print function.
-                            Default: print            
-        """
+    def __init__(self, patience=7, verbose=False, delta=0, path='checkpoint.pt', trace_func=print):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0

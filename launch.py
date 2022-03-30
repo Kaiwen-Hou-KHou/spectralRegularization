@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from toy_datasets import tomita_dataset
-from simple_datasets import SimpleDataset, collate, get_random_training_data
+from simple_datasets import SimpleDataset, collate, pad_data, get_random_training_data
 from torch.utils.data import DataLoader
 
 from char_lang_model import CharLanguageModel
@@ -31,10 +31,6 @@ def parse_option():
     parser.add_argument('--name', type=str)
     opt = parser.parse_args()
     return opt
-
-def pad_data(dataset, max_len, VOCAB_SIZE=4):
-    split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-    return [l + [VOCAB_SIZE-1] * (max_len - len(l)) for l in split_str]
 
 def train_epoch(model, VOCAB_SIZE, optimizer, train_loader, lam, stopProb = 0.2):
     model.train()
@@ -168,8 +164,8 @@ def main(train_len=15, test_len_list=[15, 17, 20], lam_list = [0, 0.001, 0.01, 0
         model = CharLanguageModel(vocab_size = VOCAB_SIZE, embed_size = VOCAB_SIZE, hidden_size=50, nlayers=1, rnn_type='RNN', 
                               nonlinearity='tanh').to(DEVICE)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-1, amsgrad=True)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
-        early_stopping = EarlyStopping(patience=10, verbose=True)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10)
+        early_stopping = EarlyStopping(patience=20, verbose=True)
         res = train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loader, test_loader_dict, lam=lam, 
                                                                                early_stopping=early_stopping, 
                                                                                n_epoch=1000)

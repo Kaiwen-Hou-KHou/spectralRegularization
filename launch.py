@@ -1,14 +1,22 @@
+import jax
+import numpy as np
+import random
+
 import torch
 import torch.nn as nn
-import copy
-from spectral_reg import *
-from accuracy import *
-import random
-from toy_datasets import *
-from simple_datasets import *
+
+from toy_datasets import tomita_dataset
+from simple_datasets import SimpleDataset, collate, get_random_training_data
+from torch.utils.data import DataLoader
+
 from char_lang_model import CharLanguageModel
+from spectral_reg import SpectralRegularization
 from early_stop import EarlyStopping
+from accuracy import Accuracy#, ratio_correct_samples
+
 from tqdm import tqdm
+#import copy
+
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -117,8 +125,8 @@ def train_model(model, VOCAB_SIZE, optimizer, scheduler, train_loader, val_loade
                 early_stopping(val_loss, model)
                 if early_stopping.early_stop:
                     break
-                else:
-                    best_model_trained = copy.deepcopy(model)
+                #else:
+                #    best_model_trained = copy.deepcopy(model)
                     
         results['last_model'] = model
 

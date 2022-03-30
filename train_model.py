@@ -1,15 +1,18 @@
 import torch
 import torch.nn as nn
-import copy
-from spectral_reg import *
-from accuracy import *
-import random
-from toy_datasets import *
-from simple_datasets import *
+
+from toy_datasets import tomita_dataset
+from simple_datasets import get_data_split
+
 from char_lang_model import CharLanguageModel
+from spectral_reg import SpectralRegularization
 from early_stop import EarlyStopping
+from accuracy import Accuracy, ratio_correct_samples
+
+#import copy
 from tqdm import tqdm
 from utils import seed_everything
+#import random
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 #DEVICE = "cpu"
@@ -175,9 +178,9 @@ def main():
         
     # generate test data
     data_split = 0.999999999  # ???
-    import jax
+    #import jax
     rng_key = seed_everything(42)
-    data_dict = {}
+    #data_dict = {}
     test_loader_dict = {}
     
     overlaping_datasets = False
@@ -224,6 +227,6 @@ def main():
 
 if __name__ == '__main__':
 
-    import sys, os
+    #import sys, os
     #print(os.path.basename(sys.argv[0]), sys.argv[1:])
     main()

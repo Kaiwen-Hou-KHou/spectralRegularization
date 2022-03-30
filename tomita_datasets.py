@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 tomita datasets
-
-@author: Kaiwen Hou
-kaiwen.hou@mila.quebec
 """
 
-
-from toy_datasets import *
+import jax
+from toy_datasets import tomita_dataset, score_tomita, tomita_size
 
 if __name__ == '__main__':
     max_len    = 15

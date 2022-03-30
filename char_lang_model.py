@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Character Language Model
-
-@author: Kaiwen Hou
-kaiwen.hou@mila.quebec
 """
 
-import torch.nn as nn
-
-from torch.nn import functional as F
 import torch
+import torch.nn as nn
+from torch.nn import functional as F
 from torch.distributions import Categorical
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

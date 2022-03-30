@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Dataset Loaders
-
-@author: Kaiwen Hou
-kaiwen.hou@mila.quebec
 """
 
 import numpy as np

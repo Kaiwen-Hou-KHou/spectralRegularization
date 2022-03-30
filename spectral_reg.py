@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Spectral Regularization
-
-@author: Kaiwen Hou
-kaiwen.hou@mila.quebec
 """
 
 import numpy as np
@@ -28,14 +25,14 @@ class SpectralRegularization(nn.Module):
 
     # @profile
     def forward(self, model, VOCAB_SIZE, stopProb=0.2, hankelSizeCap=10, russian_roulette_type='L_shape', verbose=-1, use_wandb=False):
-        τ = min(np.random.geometric(stopProb), hankelSizeCap)   
+        tau = min(np.random.geometric(stopProb), hankelSizeCap)   
         if use_wandb:
-            wandb.log({"tau":τ})
+            wandb.log({"tau":tau})
         tic()
 
-        logH = self.make_hankel(model, τ, stopProb, VOCAB_SIZE, russian_roulette_type)
+        logH = self.make_hankel(model, tau, stopProb, VOCAB_SIZE, russian_roulette_type)
         if verbose > 0:
-            print(f"running time for Hankel of size {logH.shape} (tau = {τ}, {russian_roulette_type}): {toc()} seconds")
+            print(f"running time for Hankel of size {logH.shape} (tau = {tau}, {russian_roulette_type}): {toc()} seconds")
 
         out = torch.norm(torch.exp(logH - logH.max()), p='nuc') #Hankel Loss...
         return out
@@ -58,19 +55,19 @@ class SpectralRegularization(nn.Module):
         return vals
 
     # @profile
-    def make_hankel(self, model, τ, stopProb, VOCAB_SIZE, russian_roulette_type='L_shape'):
+    def make_hankel(self, model, tau, stopProb, VOCAB_SIZE, russian_roulette_type='L_shape'):
         if not (russian_roulette_type in "L_shape block_diag block_diag_no_norm".split()):
             raise(NotImplementedError())
 
-        model_values = {}
-        max_length = 2*τ
+        #model_values = {}
+        max_length = 2*tau
         hankel_tensors = []
 
         for l in range(max_length+1):
             if russian_roulette_type == 'L_shape':
                 hankel_tensors.append(self.get_Hankel_tensor(model,l,VOCAB_SIZE))
             if 'block_diag' in russian_roulette_type:
-                if l > τ:
+                if l > tau:
                     hankel_tensors.append(-1 * torch.ones([VOCAB_SIZE-2] * l).to(DEVICE) * torch.inf)
                 else:
                     hankel_tensors.append(self.get_Hankel_tensor(model,l,VOCAB_SIZE))
@@ -80,7 +77,7 @@ class SpectralRegularization(nn.Module):
         logH = hankel_tensors[0].reshape([1,1])
         n_letters = VOCAB_SIZE-2
 
-        for t in range(1,τ+1):
+        for t in range(1,tau+1):
             new_row_block = torch.cat([H.reshape([n_letters**t,-1]) for H in hankel_tensors[t:2*t]],dim=1) 
             new_col_block = torch.cat([H.reshape([-1,n_letters**t]) for H in hankel_tensors[t:2*t+1]],dim=0) 
             if russian_roulette_type == 'L_shape':

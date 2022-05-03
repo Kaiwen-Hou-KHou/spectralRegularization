@@ -46,28 +46,55 @@ class SimpleDataset(Dataset):
         return self.data.shape[0]
     
 
-def pad_data(dataset, split_method='any', remove_header=True):
+def pad_data(dataset, split_method='any', remove_header=True, sos_eos_tokens=None):
     # pad data and add BOS and EOS tokens
     max_len = max([len(s) for s in dataset])
-    if split_method == 'any':
-        split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
-        VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
-        
-    elif split_method == 'space':
-        split_str = [i.split() for i in dataset]
-        split_str.remove([])
-        if remove_header:
-            print('Header of dataset: '+str(split_str[0]))
-            split_str = [list(np.array(i).astype(int)) for i in split_str[1:]]
-            print('Length of dataset: '+str(len(split_str)))
-            VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
+    
+    if sos_eos_tokens: # given sos and eos, eg. from training set, and pad the test set
+        VOCAB_SIZE, sos_token, eos_token = sos_eos_tokens
+        if split_method == 'any':
+            split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
+
+        elif split_method == 'space':
+            split_str = [i.split() for i in dataset]
+            try:
+                split_str.remove([])
+            except ValueError:
+                split_str
+            if remove_header:
+                print('Header of dataset: '+str(split_str[0]))
+                split_str = [list(np.array(i).astype(int)) for i in split_str[1:]]
+                print('Length of dataset: '+str(len(split_str)))
+            else:
+                split_str = [list(np.array(i).astype(int)) for i in split_str]
+                print('Length of dataset: '+str(len(split_str)))
+
         else:
-            split_str = [list(np.array(i).astype(int)) for i in split_str]
-            print('Length of dataset: '+str(len(split_str)))
-            VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
+            raise ValueError('Unsupported split method')
         
     else:
-        raise ValueError('Unsupported split method')
+        if split_method == 'any':
+            split_str = [list(np.array(list(i)).astype(int)) for i in dataset]
+            VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
+
+        elif split_method == 'space':
+            split_str = [i.split() for i in dataset]
+            try:
+                split_str.remove([])
+            except ValueError:
+                split_str
+            if remove_header:
+                print('Header of dataset: '+str(split_str[0]))
+                split_str = [list(np.array(i).astype(int)) for i in split_str[1:]]
+                #print('Length of dataset: '+str(len(split_str)))
+                VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
+            else:
+                split_str = [list(np.array(i).astype(int)) for i in split_str]
+                #print('Length of dataset: '+str(len(split_str)))
+                VOCAB_SIZE, sos_token, eos_token = get_sos_and_eos(split_str)
+
+        else:
+            raise ValueError('Unsupported split method')
     
     padded_data = [[sos_token] + ll + [eos_token] * (max_len - len(ll) + 1) for ll in split_str]
     return padded_data, VOCAB_SIZE
@@ -81,18 +108,33 @@ def collate(seq_list):
     targets = torch.stack([s[1] for s in seq_list], dim=0)
     return inputs, targets 
 
-def get_data_split(data,train_len,val_len,test_len,batch_size=128,overlap=False):
+def get_data_split(data,train_len,val_len,test_len,batch_size=128,overlap=False,split_method='any',remove_header=True,testData=None):
     
-    data, VOCAB_SIZE = pad_data(data)
+    data, VOCAB_SIZE = pad_data(data, split_method, remove_header)
     random.shuffle(data)
-    if overlap:
-        test,train,val = [torch.tensor(random.choices(data,k=n)) for n in [test_len,train_len,val_len]]
+           
+    if testData:
+        sos_eos_tokens = get_sos_and_eos(data, padded=True) # get sos and eos from training set
+        testData, test_VOCAB_SIZE = pad_data(testData, split_method, remove_header, sos_eos_tokens)
+        test = torch.tensor(testData)
+        if overlap:
+            train,val = [torch.tensor(random.choices(data,k=n)) for n in [train_len,val_len]]
+        else:
+            print(f"{train_len}+{val_len} --- {len(data)}")
+            assert(train_len+val_len <= len(data)), f"{train_len}+{val_len}+{test_len} > {len(data)}"
+            val,data = torch.tensor(data[:val_len]),data[val_len:]
+            train,data = torch.tensor(data[:train_len]),data[train_len:]
+            
     else:
-        print(f"{train_len}+{val_len}+{test_len} --- {len(data)}")
-        assert(train_len+val_len+test_len <= len(data)), f"{train_len}+{val_len}+{test_len} > {len(data)}"
-        val,data = torch.tensor(data[:val_len]),data[val_len:]
-        train,data = torch.tensor(data[:train_len]),data[train_len:]
-        test,data = torch.tensor(data[-test_len:]),data[:test_len]
+        if overlap:
+            test,train,val = [torch.tensor(random.choices(data,k=n)) for n in [test_len,train_len,val_len]]
+        else:
+            print(f"{train_len}+{val_len}+{test_len} --- {len(data)}")
+            assert(train_len+val_len+test_len <= len(data)), f"{train_len}+{val_len}+{test_len} > {len(data)}"
+            val,data = torch.tensor(data[:val_len]),data[val_len:]
+            train,data = torch.tensor(data[:train_len]),data[train_len:]
+            test,data = torch.tensor(data[-test_len:]),data[:test_len]
+            
     datasets = []
     datasets.append(DataLoader(SimpleDataset(train), shuffle=True, batch_size=batch_size, collate_fn = collate, drop_last=True) if train_len > 0 else None) 
     datasets.append(DataLoader(SimpleDataset(val), shuffle=False, batch_size=len(val), collate_fn = collate) if val_len > 0 else None)
